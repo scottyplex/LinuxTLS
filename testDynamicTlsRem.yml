@@ -1,7 +1,7 @@
 ---
 # This will search for conf files located in conf.d directory to remediate TLS vulnerability
 - name: TLS Remediation
-  hosts: VSPM_TLS
+  hosts: TLS_hosts
   vars: httpd_dir: '/etc/httpd/conf.d'
 
   tasks:
