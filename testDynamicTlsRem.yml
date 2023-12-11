@@ -1,0 +1,16 @@
+---
+# This will search for conf files located in conf.d directory to remediate TLS vulnerability
+- name: TLS Remediation
+  hosts: VSPM_TLS
+  vars: httpd_dir: '/etc/httpd/conf.d'
+
+  tasks:
+    - name: "Find all files with "SSLProtocl" in {{ httpd_dir }}"
+      ansible.builtin.find:
+        recurse: no
+        paths: - "{{ httpd_dir }}"
+        read_whole_file: true
+        use_regex: true
+        exclude: '*.bak'
+        contains: - '^.*SSLProtocol.*$'
+      register: httpd_conf
