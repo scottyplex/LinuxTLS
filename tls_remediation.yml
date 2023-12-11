@@ -1,7 +1,7 @@
 ---
 # This will search and replace 'SSLProtocl' line in http.conf file to remediate TLS vulnerability
 - name: TLS Remediation
-  hosts: VSPM_TLS
+  hosts: TLS_hosts
 
   tasks:
     - name: stop http service
