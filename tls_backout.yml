@@ -1,7 +1,7 @@
 ---
 # This will search for any backups Ansible created durring remediation and implement it
 - name: TLS Backout
-  hosts: VSPM_TLS_Backout
+  hosts: TLS_hosts_Backout
 
   vars:
     http_file: '/etc/httpd/conf.d/https.conf'
