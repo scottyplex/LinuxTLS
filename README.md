@@ -29,6 +29,12 @@ ansible-playbook -i <your_inventory_file> tls-remediation.yml --limit TLS_hosts
 
 ---
 
+### Backout Script
+
+This repository includes a corresponding backout script designed to reverse the changes made by this playbook. Having a backout plan is a critical part of a professional remediation process and ensures you can quickly revert changes if any issues arise.
+
+---
+
 ### Notes
 
 * **Service Management:** The playbook gracefully stops and starts the `httpd` service to ensure the new configuration takes effect without manual intervention.
