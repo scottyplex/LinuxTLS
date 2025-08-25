@@ -1,0 +1,88 @@
+---
+- name: TLS Remediation
+  hosts: VSPM_TLS
+
+  tasks:
+    - name: "Apache TLS Remediation"
+      block:
+        - name: "Replacing SSLProtocol line in httpd.conf file"
+          ansible.builtin.lineinfile:
+            path: '/etc/httpd/conf.d/httpd.conf'
+            regexp: '^.*SSLProtocol.*$'
+            line: '    SSLProtocol -ALL +TLSv1.2'
+            backup: true
+            backrefs: true
+          notify: Restart Apache
+      when: web_application == "Apache"
+
+    - name: "Tomcat TLS Remediation"
+      block:
+        - name: "Ensure tomcat_base_path is defined"
+          ansible.builtin.assert:
+            that:
+              - tomcat_base_path is defined
+              - tomcat_base_path | length > 0
+            fail_msg: "Error: tomcat_base_path is not defined. Please provide the Tomcat base directory in the survey."
+
+        - name: "Construct path to server.xml (for backup)"
+          ansible.builtin.set_fact:
+            tomcat_conf_path: "{{ tomcat_base_path }}/conf/server.xml"
+
+        - name: "Construct path to shutdown.sh (Tomcat)"
+          ansible.builtin.set_fact:
+            shutdown_script_path: "{{ tomcat_base_path }}/bin/shutdown.sh"
+          when: web_application == "Tomcat"
+
+        - name: "Construct path to startup.sh (Tomcat)"
+          ansible.builtin.set_fact:
+            startup_script_path: "{{ tomcat_base_path }}/bin/startup.sh"
+          when: web_application == "Tomcat"
+
+        - name: "Replacing SSLProtocol line in server.xml file"
+          ansible.builtin.lineinfile:
+            path: "{{ tomcat_base_path }}/conf/server.xml"
+            regexp: '^.*<SSLHostConfig.*$'
+            line: '        <SSLHostConfig protocols="TLSv1.2,TLSv1.3">'
+            backup: true
+            backrefs: true
+
+        - name: "Stop Tomcat (if shutdown.sh exists)"
+          ansible.builtin.command: "/bin/sh \"{{ shutdown_script_path }}\""
+          when: shutdown_script_path is defined and (shutdown_script_path | stat).exists
+          ignore_errors: true
+
+        - name: "Start Tomcat (if startup.sh exists)"
+          ansible.builtin.command: "/bin/sh \"{{ startup_script_path }}\""
+          when: startup_script_path is defined and (startup_script_path | stat).exists
+          ignore_errors: true
+
+      when: web_application == "Tomcat"
+
+    - name: "NGINX TLS Remediation"
+      block:
+        - name: "Set NGINX config file path (adjust if needed)"
+          ansible.builtin.set_fact:
+            nginx_config_path: "/etc/nginx/nginx.conf"
+
+        - name: "Adding TLS protocols and cipher preferences"
+          ansible.builtin.blockinfile:
+            path: "{{ nginx_config_path }}"
+            marker: "# Ansible MANAGED BLOCK - TLS Configuration"
+            block: |
+              ssl_protocols TLSv1.2 TLSv1.3;
+              ssl_prefer_server_ciphers on;
+            insertafter: '^\s*#\s*ssl_ciphers\s+PROFILE.*\{$'
+            backup: true
+          notify: Reload NGINX
+      when: web_application == "NGINX"
+
+  handlers:
+    - name: Restart Apache
+      ansible.builtin.service:
+        name: httpd
+        state: restarted
+
+    - name: Reload NGINX
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

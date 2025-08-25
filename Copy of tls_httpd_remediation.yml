@@ -1,0 +1,21 @@
+---
+# This will search and replace 'SSLProtocl' line in http.conf file to remediate TLS vulnerability
+- name: TLS Remediation
+  hosts: VSPM_TLS
+
+  tasks:
+    - name: Replacing SSLProtocol line in http.conf file
+      ansible.builtin.lineinfile:
+        path: '/etc/httpd/conf.d/httpd.conf'
+        regexp: '^.*SSLProtocol.*$'
+        line: '    SSLProtocol -ALL +TLSv1.2'
+        backup: true
+        backrefs: true
+
+    - name: start http service
+      ansible.builtin.service:
+       name: httpd
+       state: started
+
+    - name: start apache service
+      ansible.builtin.command: apachectl start
